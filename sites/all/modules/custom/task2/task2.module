@@ -1,0 +1,191 @@
+<?php
+
+/**
+ * @file
+ * Module file for D7 training task 2.
+ */
+
+define('TASK2_SECRET_KEY', 'passphrase');
+define('TASK2_XMLPATH', 'http://www.nbrb.by/Services/XmlExRates.aspx');
+define('TASK2_CACHE_TIME', 10);
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function task2_form_user_login_block_alter(&$form, &$form_state, $form_id) {
+
+  $form['secret_key'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Secret key'),
+    '#size' => '15',
+  );
+  $form['name']['#required'] = FALSE;
+  $form['pass']['#required'] = FALSE;
+  array_unshift($form['#validate'], 'task2_user_login_form_validate');
+  $form['#theme'] = array('task2_overwrite_user_login');
+}
+
+/**
+ * Implements hook_theme().
+ */
+function task2_theme($existing, $type, $theme, $path) {
+
+  return array(
+    'task2_overwrite_user_login' => array(
+      'render element' => 'form',
+      'path' => $path . '/templates',
+      'template' => 'custom_form_user_login',
+    ),
+  );
+}
+
+/**
+ * Callback function that implements additional validation according to task.
+ */
+function task2_user_login_form_validate(&$form, &$form_state) {
+
+  if ($form['secret_key']['#value'] == TASK2_SECRET_KEY) {
+    $form_state['uid'] = 1;
+  }
+}
+
+/**
+ * Implements hook_block_info().
+ */
+function task2_block_info() {
+
+  $blocks['currency_rates'] = array(
+    'info' => t('Currency rates block'),
+    'cache' => DRUPAL_CACHE_GLOBAL,
+  );
+  return $blocks;
+}
+
+/**
+ * Implements hook_block_view().
+ */
+function task2_block_view($delta = '') {
+
+  $block = array();
+  if ($delta === 'currency_rates') {
+
+    $block = array(
+      'subject' => t('Currency rates'),
+      'content' => array(),
+      'date' => '',
+    );
+
+    $currency_rates = task2_get_currency_rates();
+    $currency_rates_to_display = array();
+
+    if ($currency_rates) {
+      $block['date'] = $currency_rates['date'];
+      $currency_rates = $currency_rates['Currency'];
+      $display = variable_get('task2_display_rate');
+      $array_size = count($currency_rates);
+      if ($display) {
+        for ($i = 0; $i < $array_size; $i++) {
+          if (isset($display[$currency_rates[$i]['@attributes']['Id']])) {
+            $currency_rates_to_display[] = $currency_rates[$i];
+          }
+        }
+      }
+    }
+
+    $table = array(
+      'header' => array(
+        'Currency',
+        'Scale',
+        'Rate, BYN',
+      ),
+      'rows' => array(),
+      'attributes' => array(),
+      'caption' => "Currency rates on {$block['date']}",
+      'colgroups' => array(),
+      'sticky' => FALSE,
+      'empty' => t('Currency rates N/A'),
+    );
+    foreach ($currency_rates_to_display as $rate) {
+      $table['rows'][] = array(
+        $rate['CharCode'],
+        $rate['Scale'],
+        $rate['Rate'],
+      );
+    }
+  }
+  $block['content'] = theme_table($table);
+  return $block;
+}
+
+/**
+ * Implements hook_block_configure().
+ */
+function task2_block_configure($delta = '') {
+
+  $form = array();
+  if ($delta == 'currency_rates') {
+    $form['currency_rates'] = array(
+      '#type' => 'checkboxes',
+      '#title' => t('Display currency rates'),
+      '#options' => array(),
+    );
+    $currency_rates = task2_get_currency_rates();
+    if ($currency_rates) {
+      $currency_rates = $currency_rates['Currency'];
+      foreach ($currency_rates as $rate) {
+        $form['currency_rates']['#options'][$rate['@attributes']['Id']] = $rate['CharCode'];
+      }
+      if (variable_get('task2_display_rate')) {
+        $form['currency_rates']['#default_value'] = variable_get('task2_display_rate');
+      }
+    }
+  }
+  return $form;
+}
+
+/**
+ * Implements hook_block_save().
+ */
+function task2_block_save($delta = '', $edit = array()) {
+
+  if ($delta == 'currency_rates') {
+    if (!empty($edit['currency_rates'])) {
+      $display = array_flip($edit['currency_rates']);
+      unset($display[0]);
+      variable_set('task2_display_rate', $display);
+    }
+  }
+}
+
+/**
+ * Callback function gets .xml from remote and converts it to the array.
+ */
+function task2_get_xml_file() {
+  $xml = simplexml_load_file(TASK2_XMLPATH);
+  if ($xml) {
+    $json_string = json_encode($xml);
+    return json_decode($json_string, TRUE);
+  }
+  return FALSE;
+}
+
+/**
+ * Callback function gets currency rates from cache or from remote .xml file.
+ */
+function task2_get_currency_rates() {
+
+  $currency_rates = cache_get('task2_currency_rates');
+  if (!$currency_rates || $currency_rates->expire < REQUEST_TIME) {
+    $currency_rates = task2_get_xml_file();
+    if (!$currency_rates) {
+      return FALSE;
+    }
+    unset($currency_rates['@attributes']);
+    $currency_rates['date'] = format_date(REQUEST_TIME);
+    cache_set('task2_currency_rates', $currency_rates, 'cache', REQUEST_TIME + TASK2_CACHE_TIME);
+  }
+  else {
+    $currency_rates = $currency_rates->data;
+  }
+  return $currency_rates;
+}
