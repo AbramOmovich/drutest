@@ -1,0 +1,350 @@
+<?php
+
+/**
+ * @file
+ * Module file for D7 training task 1.
+ */
+
+/**
+ * Implements hook_menu().
+ */
+function task1_menu() {
+  $items['training/menu'] = array(
+    'title' => 'Training Landing Page',
+    'page callback' => 'task1_training_landing_page',
+    'access callback' => TRUE,
+    'expanded' => TRUE,
+  );
+
+  $items['training/menu/custom_access'] = array(
+    'title' => 'Custom Access Menu Item',
+    'page callback' => 'task1_training_landing_page',
+    'access callback' => 'user_is_logged_in',
+  );
+
+  $items['training/menu/permissioned'] = array(
+    'title' => 'Permissioned Menu Item',
+    'page callback' => 'task1_training_landing_page',
+    'access arguments' => array(
+      'access protected menu example',
+    ),
+  );
+
+  $items['training/menu/callback'] = array(
+    'title' => 'Callback Menu Item',
+    'page callback' => 'task1_callback_page',
+    'access callback' => TRUE,
+    'type' => MENU_CALLBACK,
+  );
+
+  $items['training/menu/tabs'] = array(
+    'title' => 'Tabs',
+    'page callback' => 'task1_training_tab_page',
+    'access callback' => TRUE,
+  );
+
+  $items['training/menu/tabs/second'] = array(
+    'title' => 'Tab 2',
+    'page callback' => 'task1_training_tabs_secnd_third_fourth',
+    'page arguments' => array(3),
+    'access callback' => TRUE,
+    'type' => MENU_LOCAL_TASK,
+  );
+
+  $items['training/menu/tabs/third'] = array(
+    'title' => 'Tab 3',
+    'page callback' => 'task1_training_tabs_secnd_third_fourth',
+    'page arguments' => array(3),
+    'access callback' => TRUE,
+    'type' => MENU_LOCAL_TASK,
+  );
+
+  $items['training/menu/tabs/fourth'] = array(
+    'title' => 'Tab 4',
+    'page callback' => 'task1_training_tabs_secnd_third_fourth',
+    'page arguments' => array(3),
+    'access callback' => TRUE,
+    'type' => MENU_LOCAL_TASK,
+  );
+
+  $items['training/menu/tabs/default'] = array(
+    'title' => 'Default tab',
+    'page callback' => 'task1_training_tab_page',
+    'access callback' => TRUE,
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+  );
+
+  $items['training/menu/tabs/default/second'] = array(
+    'title' => 'Default tab child 2',
+    'page callback' => 'task1_training_tabs_secnd_third_fourth',
+    'page arguments' => array(4),
+    'access callback' => TRUE,
+    'type' => MENU_LOCAL_TASK,
+  );
+
+  $items['training/menu/tabs/default/third'] = array(
+    'title' => 'Default tab child 3',
+    'page callback' => 'task1_training_tabs_secnd_third_fourth',
+    'page arguments' => array(4),
+    'access callback' => TRUE,
+    'type' => MENU_LOCAL_TASK,
+  );
+
+  $items['training/menu/arguments'] = array(
+    'title' => 'Arguments menu item',
+    'page callback' => 'task1_training_arguments_page',
+    'access callback' => TRUE,
+  );
+
+  $items['training/menu/arguments/%/%'] = array(
+    'title' => 'Arguments menu item',
+    'page callback' => 'task1_training_arguments_page',
+    'page arguments' => array(3, 4),
+    'access callback' => TRUE,
+  );
+
+  $items['training/menu/placeholder/%/display'] = array(
+    'title' => 'Dynamic placeholder page',
+    'page callback' => 'task1_training_dynamic_placeholder_page',
+    'page arguments' => array(3),
+    'access callback' => TRUE,
+  );
+
+  $items['training/menu/default_arg/%'] = array(
+    'title' => 'Argument handler page',
+    'page callback' => 'task1_training_argument_handler_page',
+    'page arguments' => array(3),
+    'access callback' => TRUE,
+  );
+
+  $items['training/menu/title'] = array(
+    'title' => 'Dynamic title page',
+    'page callback' => 'task1_training_dynamic_title_page',
+    'access callback' => TRUE,
+  );
+
+  $items['training/menu/main'] = array(
+    'title' => 'Item in main menu',
+    'page callback' => 'task1_training_landing_page',
+    'access callback' => TRUE,
+    'menu_name' => 'main-menu',
+  );
+
+  $items['training/theme'] = array(
+    'title' => 'Links to themes',
+    'page callback' => 'task1_link_page',
+    'access callback' => TRUE,
+  );
+
+  $items['training/theme/table'] = array(
+    'title' => 'Theme table page',
+    'page callback' => 'task1_table_page',
+    'access callback' => TRUE,
+  );
+
+  $items['training/theme/image'] = array(
+    'title' => 'Theme image page',
+    'page callback' => 'task1_image_page',
+    'access callback' => TRUE,
+  );
+
+  $items['training/theme/access'] = array(
+    'title' => "Theme access page",
+    'page callback' => 'task1_access_page',
+    'access callback' => TRUE,
+  );
+
+  return $items;
+}
+
+/**
+ * Implements hook_permission().
+ */
+function task1_permission() {
+  return array(
+    'access protected menu example' => array(
+      'title' => t('Access protected menu example'),
+      'description' => t('Grant access to protected menu example.'),
+    ),
+    'access protected content' => array(
+      'title' => t('Access protected content'),
+      'description' => t('Grant access to protected content.'),
+    ),
+  );
+}
+
+/**
+ * Callback function for the landing page.
+ */
+function task1_training_landing_page() {
+  return 'This is the landing page of the Training module';
+}
+
+/**
+ * Callback function for the callback page.
+ */
+function task1_callback_page() {
+  return 'The menu entry for this page is of type MENU_CALLBACK';
+}
+
+/**
+ * Callback function for the tab example.
+ */
+function task1_training_tab_page() {
+  return 'This is the "tabs" menu entry';
+}
+
+/**
+ * Callback function for tabs number 2,3,4. Returns argument parameters.
+ */
+function task1_training_tabs_secnd_third_fourth($arg) {
+  return 'This is the tab ' . $arg . ' in the "basic tabs" example';
+}
+
+/**
+ * Callback function for arguments page. Returns argument parameters.
+ */
+function task1_training_arguments_page($arg1 = '', $arg2 = '') {
+  return 'Argument 1 = ' . $arg1 . '<br /> Argument 2 = ' . $arg2;
+}
+
+/**
+ * Callback function for dynamic placeholder page. Returns div with incoming parameters.
+ */
+function task1_training_dynamic_placeholder_page($arg) {
+  return '<div>' . $arg . '</div>';
+}
+
+/**
+ * Callback function for arguments page. Returns information from array.
+ */
+function task1_training_argument_handler_page($arg) {
+  $array = array(
+    '1' => 'one',
+    '2' => 'two',
+    '3' => 'three',
+    '99' => 'almost there',
+  );
+
+  $page_result = array_key_exists($arg, $array) ? $array[$arg] : drupal_not_found();
+
+  return $page_result;
+}
+
+/**
+ * Callback function for dynamic title page. Returns username in page title and body.
+ */
+function task1_training_dynamic_title_page() {
+  global $user;
+  $page_title = empty($user->name) ? 'anonymous' : $user->name;
+  drupal_set_title($page_title);
+  return $page_title;
+}
+
+/**
+ * Callback function for links page. Returns link list.
+ */
+function task1_link_page() {
+  $path = 'training/theme';
+  $variables = array('items' => array(
+    l('List', $path . "/list"),
+    l('Table', $path . "/table"),
+    l('Image', $path . "/image"),
+    l('Access', $path . "/access"),
+  ),
+    'title' => 'Links to themes',
+    'type' => 'ol',
+  );
+
+  return theme("item_list", $variables);
+}
+
+/**
+ * Callback function for table page. Returns parameterized table.
+ */
+function task1_table_page() {
+  $variables = array(
+    'caption' => 'Theme table sample',
+    'header' => array(
+      'Header 1',
+      'Header 2',
+      'Header 3',
+    ),
+    'rows' => array(
+      array(
+        'data' => array(
+          'Cell 1-1',
+          array(
+            'data' => 'Cell 1-2',
+            'colspan' => 2,
+          ),
+        ),
+        'class' => array(
+          'rowClass',
+        ),
+      ),
+      array(
+        'data' => array(
+          'Cell 2-1',
+          array(
+            'data' => 'Cell 2-2',
+            'colspan' => 2,
+          ),
+        ),
+        'class' => array(
+          'rowClass',
+        ),
+      ),
+      array(
+        'data' => array(
+          'Cell 3-1',
+          array(
+            'data' => 'Cell 3-2',
+            'colspan' => 2,
+          ),
+        ),
+        'class' => array(
+          'rowClass',
+        ),
+      ),
+    ),
+    'attributes' => array(
+      'id' => 'table-test',
+    ),
+  );
+
+  return theme("table", $variables);
+}
+
+/**
+ * Callback function for images page. Returns sample image in original format and all presetted styles.
+ */
+function task1_image_page() {
+  $variables = array(
+    'path' => 'public://sample.png',
+    'attributes' => array(
+      'class' => 'simple-image',
+    ),
+  );
+
+  $result = theme("image", $variables) . '<br /><br />';
+
+  foreach (array_keys(image_styles()) as $style) {
+    $variables['style_name'] = $style;
+    $result .= theme("image_style", $variables) . '<br /><br />';
+  }
+
+  return $result;
+}
+
+/**
+ * Callback function for permitted page. Returns string value depend on access permission.
+ */
+function task1_access_page() {
+  if (user_access('access protected content')) {
+    return 'Custom access for rendered content';
+  }
+  else {
+    return 'Custom access inversed for rendered content';
+  }
+}
