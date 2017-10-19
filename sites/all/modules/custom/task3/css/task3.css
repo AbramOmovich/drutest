@@ -1,0 +1,12 @@
+/**
+ * @file
+ * CSS file for D7 training task 3.
+ */
+
+#filelist-table th:nth-child(2), #filelist-table td:nth-child(2) {
+  display: none;
+}
+.current-user-file{
+  background-color: rgb(141, 175, 232);
+  color: rgb(255, 255, 255);
+}
