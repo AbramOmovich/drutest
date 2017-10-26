@@ -1,0 +1,97 @@
+<?php
+
+/**
+ * @file
+ * Module file for D7 training task 6.
+ */
+
+/**
+ * Implements hook_menu().
+ */
+function task6_menu() {
+  $items['training/page'] = array(
+    'title' => 'I18n',
+    'page callback' => 'task6_i18n_page',
+    'access callback' => 'user_is_logged_in',
+    'file' => 'includes/task6.pages.inc',
+  );
+  $items['training/%ctools_js/click_me_link'] = array(
+    'title' => 'I18n modal',
+    'page callback' => 'task6_modal_call',
+    'page arguments' => array(1),
+    'access callback' => 'user_is_logged_in',
+    'type' => MENU_CALLBACK,
+    'delivery callback' => 'ajax_deliver',
+  );
+  return $items;
+}
+
+/**
+ * Callback function to set up the alert window.
+ */
+function task6_modal_call($ajax) {
+  if ($ajax) {
+    ctools_include('ajax');
+    drupal_add_js(array('task6-string' => task6_get_required_info()), 'setting');
+    $ajax_commands[] = array('command' => 'task6_user_registration_message');
+    print ajax_render($ajax_commands);
+    drupal_exit();
+  }
+}
+
+/**
+ * Callback function generates required user and date information.
+ */
+function task6_get_required_info() {
+
+  global $user;
+  $user_registered = new DateObject($user->created);
+  $start_date = new DateObject(REQUEST_TIME);
+  $end_date = new DateObject();
+  $end_date->setDate(date_format($start_date, 'Y') + 1, 1, 1);
+  $diff = $end_date->difference($start_date, 'days');
+
+  $output = t('User !user_name was registered !date_of_registration. There is !several_days before New Year.',
+    array(
+      '!user_name' => $user->name,
+      '!date_of_registration' => date_format_date($user_registered, 'custom', 'd F Y', NULL),
+      '!several_days' => format_plural($diff, '1 day', '@count days'),
+    )
+  );
+
+  return $output;
+}
+
+/**
+ * Callback function returns textarea form.
+ */
+function task6_textarea_form($form, $form_state) {
+
+  $form['textarea'] = array(
+    '#type' => 'textarea',
+    '#title' => t('Unsafe text here ...'),
+  );
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Make it safe'),
+    '#ajax' => array(
+      'callback' => 'task6_textarea_ajax_callback',
+      'wrapper' => 'task6_test_ajax',
+    ),
+  );
+  return $form;
+}
+
+/**
+ * Callback function to set up and call the "securify" text function.
+ */
+function task6_textarea_ajax_callback($form, &$form_state) {
+
+  if (!empty($form['textarea']['#value'])) {
+    ctools_include('ajax');
+    drupal_add_js(array('task6-string' => check_plain($form['textarea']['#value'])), 'setting');
+    $ajax_commands[] = array('command' => 'task6_make_secure_text');
+    print ajax_render($ajax_commands);
+  }
+  drupal_exit();
+}
