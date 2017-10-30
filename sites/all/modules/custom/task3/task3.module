@@ -1,0 +1,146 @@
+<?php
+
+/**
+ * @file
+ * Module file for D7 training task 3.
+ */
+
+/**
+ * Implements hook_menu().
+ */
+function task3_menu() {
+
+  $items['training/files'] = array(
+    'title' => 'Server filelist',
+    'page callback' => 'task3_files_page',
+    'description' => 'List of files on the server',
+    'file' => 'task3.pages.inc',
+    'access callback' => 'user_is_logged_in',
+  );
+  $items['training/files/%ctools_js'] = array(
+    'page callback' => 'task3_modal_call',
+    'page arguments' => array(2),
+    'access callback' => 'user_is_logged_in',
+    'type' => MENU_CALLBACK,
+  );
+  return $items;
+}
+
+/**
+ * Implements hook_file_download().
+ */
+function task3_file_download($uri) {
+
+  if (task3_user_has_files()) {
+    $file = array_values(file_load_multiple(array(), array('uri' => $uri)))[0];
+    return array(
+      'Content-Type' => $file->filemime,
+    );
+  }
+  return -1;
+}
+
+/**
+ * Callback function to set up the upload form.
+ */
+function task3_modal_call($ajax) {
+  if ($ajax) {
+    ctools_include('ajax');
+    ctools_include('modal');
+
+    $form_state = array(
+      'ajax' => TRUE,
+      'title' => t('File upload form'),
+    );
+
+    $output = ctools_modal_form_wrapper('task3_file_upload_form', $form_state);
+
+    if (!empty($form_state['ajax_commands'])) {
+      $output = $form_state['ajax_commands'];
+    }
+
+    print ajax_render($output);
+    drupal_exit();
+  }
+  else {
+    return drupal_get_form('task3_file_upload_form');
+  }
+}
+
+/**
+ * Implementation function for upload form.
+ */
+function task3_file_upload_form($form, $form_state) {
+
+  $form['user_file'] = array(
+    '#title' => t('File upload form'),
+    '#name' => 'user_file',
+    '#type' => 'managed_file',
+    '#upload_location' => 'private://user_files/',
+  );
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Close upload form'),
+  );
+  return $form;
+}
+
+/**
+ * Callback function that saves uploaded file correctly.
+ */
+function task3_file_upload_form_submit(&$form, &$form_state) {
+
+  ctools_include('modal');
+  ctools_modal_add_js();
+
+  if ($form['user_file']['#file']) {
+    $form['user_file']['#file']->status = FILE_STATUS_PERMANENT;
+    file_save($form['user_file']['#file']);
+  }
+
+  $form_state['ajax_commands'][] = ctools_modal_command_dismiss();
+  task3_load_managed_files();
+  task3_js_transfer('loaded', FALSE);
+}
+
+/**
+ * Callback function that gets filelist from DB and passes it to JS.
+ */
+function task3_load_managed_files() {
+
+  $files = db_select('file_managed', 'fm')
+    ->fields('fm', array('fid', 'uid', 'uri', 'status'))
+    ->condition('uri', '%user_files%', 'LIKE')
+    ->execute()
+    ->fetchAll();
+
+  if (!empty($files)) {
+    foreach ($files as &$file) {
+      $file->uri = file_create_url($file->uri);
+    }
+  }
+  drupal_add_js(array('files' => $files), 'setting');
+}
+
+/**
+ * Callback function that checks if user have uploaded fies before.
+ */
+function task3_user_has_files() {
+
+  global $user;
+  $files = db_select('file_managed', 'fm')
+    ->fields('fm', array('uid'))
+    ->condition('uri', '%user_files%', 'LIKE')
+    ->condition('uid', $user->uid)
+    ->execute()
+    ->fetchField();
+
+  return $files;
+}
+
+/**
+ * Callback function that passes settings to JS.
+ */
+function task3_js_transfer($name, $setting) {
+  drupal_add_js(array($name => $setting), 'setting');
+}

@@ -1,0 +1,4 @@
+name = Task3
+description = Task 3 module for D7 training
+core = 7.x
+package = D7 training course
