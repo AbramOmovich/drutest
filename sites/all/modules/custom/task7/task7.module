@@ -1,0 +1,124 @@
+<?php
+
+/**
+ * @file
+ * Module file for D7 training task 7.
+ */
+
+define('TASK7_WIN_CODE', 'CONGRATS');
+define('TASK7_LOTTERY_LIMIT', 8);
+define('TASK7_LOTTERY_PAGE', 'training/lottery');
+
+/**
+ * Implements hook_menu().
+ */
+function task7_menu() {
+  $items[TASK7_LOTTERY_PAGE] = array(
+    'title' => 'lottery',
+    'page callback' => 'task7_lottery_page',
+    'access callback' => 'user_is_logged_in',
+    'file' => 'includes/task7.pages.inc',
+  );
+  return $items;
+}
+
+/**
+ * Callback function that implements lottery functionality.
+ */
+function task7_lottery() {
+  global $base_url;
+  $lottery_user_number = rand(1, TASK7_LOTTERY_LIMIT);
+  if (!task7_check_winner_cache()) {
+    $lottery_result = xmlrpc($base_url . '/xmlrpc.php', array('task7.check_lottery_result' => array($lottery_user_number)));
+    if (is_array($lottery_result)) {
+      if ($lottery_result['lottery_result'] == TASK7_WIN_CODE) {
+        task7_rebuild_cache(TRUE, $lottery_result['server_value'], $lottery_result['user_value']);
+        drupal_goto(current_path());
+      }
+      else {
+        task7_rebuild_cache(FALSE, $lottery_result['server_value'], $lottery_result['user_value']);
+      }
+    }
+  }
+}
+
+/**
+ * Callback function to renew the cache contents.
+ */
+function task7_rebuild_cache($win, $server_key, $user_key) {
+  global $user;
+  $cache = cache_get('task7_lottery');
+  $array = array();
+  if ($cache) {
+    $array = $cache->data;
+  }
+  $array[] = array(
+    'user_id' => $user->uid,
+    'win' => $win,
+    'server_value' => $server_key,
+    'user_value' => $user_key,
+    'lottery_time' => format_date(REQUEST_TIME, 'custom', 'd-m-Y H:i:s'),
+  );
+  cache_set('task7_lottery', $array);
+}
+
+/**
+ * Callback function to check the cache contents for "WIN result".
+ */
+function task7_check_winner_cache() {
+  global $user;
+  $cache = cache_get('task7_lottery');
+  if ($cache) {
+    foreach ($cache->data as $key => $val) {
+      if ($val['win'] == TRUE && $val['user_id'] == $user->uid && current_path() == TASK7_LOTTERY_PAGE) {
+        return $cache->data[$key];
+      }
+    }
+  }
+  return FALSE;
+}
+
+/**
+ * Implements hook_xmlrpc().
+ */
+function task7_xmlrpc() {
+  return array(
+    array(
+      'task7.check_lottery_result',
+      '_task7_set_lottery_result',
+      array('struct', 'int'),
+      t('return result of lottery'),
+    ),
+  );
+}
+
+/**
+ * Callback xmlrpc-function returns lottery results.
+ */
+function _task7_set_lottery_result($user_value) {
+
+  $check_lottery_number = rand(1, TASK7_LOTTERY_LIMIT);
+  $result_lottery = ($user_value == $check_lottery_number) ? TASK7_WIN_CODE : FALSE;
+  return array(
+    'lottery_result' => $result_lottery,
+    'server_value' => $check_lottery_number,
+    'user_value' => $user_value,
+  );
+}
+
+/**
+ * Callback function that fills data for tokens.
+ */
+function _task7_fill_lottery_object() {
+  $data = array(
+    'lottery' => (object) array(
+      'lucky_number' => 'none',
+      'timestamp' => '0',
+    ),
+  );
+  if ($win = task7_check_winner_cache()) {
+    $data['lottery']->lucky_number = $win['server_value'];
+    $data['lottery']->timestamp = $win['lottery_time'];
+  }
+  return $data;
+}

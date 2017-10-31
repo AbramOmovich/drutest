@@ -1,0 +1,6 @@
+name = Task7
+description = Task 7 module for D7 training
+core = 7.x
+package = D7 training course
+dependencies[] = user
+dependencies[] = rules
