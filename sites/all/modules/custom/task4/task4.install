@@ -1,0 +1,51 @@
+<?php
+
+/**
+ * @file
+ * Installation file for D7 training task 4.
+ */
+
+/**
+ * Implements hook_schema().
+ */
+function task4_schema() {
+  $schema['task4_messages'] = array(
+    'description' => 'Task4 module message table',
+    'fields' => array(
+      'id' => array(
+        'description' => 'Message ID',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'uid' => array(
+        'description' => 'User ID',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'type' => array(
+        'description' => 'Message type',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'title' => array(
+        'description' => 'Message title',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'body' => array(
+        'description' => 'Message body',
+        'type' => 'text',
+        'length' => 500,
+        'not null' => TRUE,
+      ),
+    ),
+    'primary key' => array('id'),
+  );
+
+  return $schema;
+}

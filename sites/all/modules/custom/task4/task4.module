@@ -1,0 +1,163 @@
+<?php
+
+/**
+ * @file
+ * Module file for D7 training task 4.
+ */
+
+define('TASK4_RESTRICTED_NODE_TYPE', 'article');
+define('TASK4_ENTITY_TYPE', 'task4_message');
+
+/**
+ * Implements hook_entity_info().
+ */
+function task4_entity_info() {
+
+  $return = array(
+    'task4_message' => array(
+      'label' => t('Task4 module message'),
+      'entity class' => 'Entity',
+      'controller class' => 'EntityAPIController',
+      'base table' => 'task4_messages',
+      'uri callback' => 'node_uri',
+      'fieldable' => TRUE,
+      'entity keys' => array(
+        'id' => 'id',
+      ),
+      'bundle keys' => array(),
+      'bundles' => array(),
+    ),
+  );
+
+  return $return;
+}
+
+/**
+ * Implements hook_menu().
+ */
+function task4_menu() {
+  $items['messages'] = array(
+    'title' => 'Messages',
+    'page callback' => 'task4_messages_page',
+    'access callback' => 'user_is_logged_in',
+    'file' => 'includes/task4.pages.inc',
+    'expanded' => TRUE,
+  );
+
+  $items['messages/add'] = array(
+    'title' => 'Add new',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('task4_message_form'),
+    'access callback' => 'user_is_logged_in',
+  );
+
+  $items['messages/%task4_message/edit'] = array(
+    'title' => 'Edit message',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('task4_message_form', 1),
+    'access callback' => 'user_is_logged_in',
+    'type' => MENU_CALLBACK,
+  );
+
+  return $items;
+}
+
+/**
+ * Implements hook_node_access().
+ */
+function task4_node_access($node, $op, $account) {
+  $type = is_string($node) ? $node : $node->type;
+  if ($type == TASK4_RESTRICTED_NODE_TYPE && !task4_user_have_message()) {
+    return NODE_ACCESS_DENY;
+  }
+  return NODE_ACCESS_IGNORE;
+}
+
+/**
+ * Callback function checks if user posted any message before.
+ */
+function task4_user_have_message() {
+  global $user;
+
+  $message = db_select('task4_messages', 't4m')
+    ->fields('t4m', array('id'))
+    ->condition('uid', $user->uid)
+    ->range(0, 1)
+    ->execute()
+    ->fetchField();
+
+  return $message;
+}
+
+/**
+ * Callback function that loads message as entity.
+ */
+function task4_message_load($id) {
+  $node = entity_load('task4_message', array($id));
+  return $node ? reset($node) : FALSE;
+}
+
+/**
+ * Callback function that returns message form.
+ */
+function task4_message_form() {
+
+  $node = func_get_arg(2);
+
+  $form['title'] = array(
+    '#title' => t('Message title'),
+    '#name' => 'title',
+    '#type' => 'textfield',
+    '#default_value' => !empty($node->title) ? $node->title : '',
+    '#required' => TRUE,
+  );
+  $form['message'] = array(
+    '#title' => t('Message'),
+    '#name' => 'message',
+    '#type' => 'textarea',
+    '#default_value' => !empty($node->body) ? $node->body : '',
+    '#required' => TRUE,
+  );
+  $form['id'] = array(
+    '#name' => 'id',
+    '#type' => 'hidden',
+    '#default_value' => !empty($node->id) ? $node->id : '0',
+  );
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Save message'),
+  );
+  return $form;
+}
+
+/**
+ * Callback function that saves data sent from message form.
+ */
+function task4_message_form_submit(&$form, &$form_state) {
+  global $user;
+
+  $params = array(
+    'type' => 1,
+    'uid' => $user->uid,
+    'title' => $form_state['values']['title'],
+    'body' => $form_state['values']['message'],
+  );
+
+  if ($form_state['values']['id'] != '0') {
+    $message = entity_load(TASK4_ENTITY_TYPE, array($form_state['values']['id']));
+    $message = reset($message);
+    if (!empty($message)) {
+      $params['id'] = $form_state['values']['id'];
+      $message->title = $form_state['values']['title'];
+      $message->body = $form_state['values']['message'];
+      $message->save();
+      $form_state['redirect'] = 'messages';
+    }
+  }
+  else {
+    $entity = entity_create(TASK4_ENTITY_TYPE, $params);
+    $entity->save();
+    drupal_set_message(t('Message saved successfully'));
+    $form_state['redirect'] = 'messages';
+  }
+}
